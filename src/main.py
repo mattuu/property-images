@@ -27,7 +27,7 @@ while True:
     r = requests.get(url, allow_redirects=True)
 
     if(r.status_code == 404):  
-        break  
+        break
 
     root = os.getcwd()
     output_folder = Path(root) / 'downloads'
