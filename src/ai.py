@@ -12,6 +12,8 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 import json
 import jsonpickle
+from urllib.error import HTTPError
+
 
 class ImageDescriptor:
     tags = array
@@ -29,29 +31,36 @@ else:
 # Add your Computer Vision endpoint to your environment variables.
 endpoint = 'https://property-room-locator.cognitiveservices.azure.com/'
 
-computervision_client = ComputerVisionClient(endpoint, CognitiveServicesCredentials(subscription_key))
+computervision_client = ComputerVisionClient(
+    endpoint, CognitiveServicesCredentials(subscription_key))
 analyze_url = endpoint + "vision/v3.0/analyze"
 
 root = os.getcwd()
-files = os.listdir('downloads')
+files = os.listdir(Path(root) / "src/downloads")
 
 for file_name in files:
-    image_path = Path('downloads') / file_name
+    image_path = Path(root, 'src', 'downloads') / file_name
 
     image_data = open(image_path, "rb").read()
     headers = {'Ocp-Apim-Subscription-Key': subscription_key,
-            'Content-Type': 'application/octet-stream'}
+               'Content-Type': 'application/octet-stream'}
     params = {'visualFeatures': 'Description'}
-    response = requests.post(
-        analyze_url, headers=headers, params=params, data=image_data)
-    response.raise_for_status()
+    response = requests.post(analyze_url, headers=headers,
+                             params=params, data=image_data)
+    try: 
+        response.raise_for_status()
+    except HTTPError:
+        print(response)
+
+    if response.status_code != 200:
+        print(response)
 
     analysis = response.json()
     # print(analysis)
     image_caption = analysis["description"]["captions"][0]["text"].capitalize()
 
     json_file_name = file_name[0:-3] + 'json'
-    json_file_path = Path('downloads') / json_file_name
+    json_file_path = Path(root, 'src', 'downloads') / json_file_name
 
     image_data = ImageDescriptor()
     image_data.tags = analysis['description']['tags']
@@ -61,8 +70,9 @@ for file_name in files:
     json_string = jsonpickle.encode(image_data)
     with open(json_file_path, 'w') as outfile:
         outfile.writelines(json_string)
-# print(json_string)
 
+
+# print(json_string)
 
 
 # with open(json_file_path, 'w') as outfile:
